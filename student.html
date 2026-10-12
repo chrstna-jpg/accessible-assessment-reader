@@ -5,10 +5,10 @@
 <p class="note"><strong>Fictional practice only.</strong> Your work is saved in <strong>this browser on this device</strong>, not to a teacher or server. It may disappear if browser data is cleared, private browsing is used, or you switch devices. Student codes are practice labels, not secure accounts. Do not enter real student information.</p>
 <section id="entry"><h2 id="assessmentTitle">Start or resume</h2><p id="assessmentPrompt" class="hidden"></p><label for="code">Practice code (letters and numbers only)</label><input id="code" autocomplete="off" maxlength="20" placeholder="Example: DEMO101" aria-describedby="codeHelp"><p id="codeHelp">Use a fictional code. Enter the same code on this device to resume your saved response.</p><button class="primary" id="open" type="button">Open my practice assessment</button><p id="entryStatus" role="status"></p></section>
 <div id="workspace" class="hidden"><section><h2>Reading and display settings</h2><label><input type="checkbox" id="large"> Larger text</label><label><input type="checkbox" id="contrast"> High contrast</label><label for="rate">Reading speed</label><select id="rate"><option value="0.75">Slow</option><option value="1" selected>Normal</option><option value="1.2">Fast</option></select></section>
-<section><h2>Directions</h2><p id="directions">Traveling to an unknown place can be both exciting and scary. One way to describe your journey is to compare and contrast what you see to things you already know. Write a paragraph describing a journey you take to a new, unknown place. Remember the characteristics of a personal narrative as you write.</p><div class="controls"><button type="button" id="readDirections">▶ Read directions (browser)</button><button type="button" id="naturalDirections">▶ Natural voice (online)</button><button type="button" id="pause">Pause</button><button type="button" id="resume">Resume</button><button type="button" id="stop">Stop</button></div><p id="audioStatus" role="status" aria-live="polite" style="min-height:1.5em"></p></section>
-<section id="passageSection" class="hidden"><h2>Reading passage</h2><p id="passage" style="white-space:pre-wrap;line-height:1.7"></p><div class="controls"><button type="button" id="readPassage">▶ Read passage (browser)</button><button type="button" id="naturalPassage">▶ Natural voice: passage (online)</button></div><p class="note">Use Pause, Resume, and Stop in the Directions section to control any audio.</p></section>
-<section><h2>Response prompt</h2><p id="responsePrompt">Write a paragraph describing a journey to a new, unknown place. Compare what you see to things you already know.</p></section>
-<section><h2>My response</h2><label for="response">Write your paragraph</label><textarea id="response" placeholder="Fictional practice response only"></textarea><div class="controls"><button type="button" id="readResponse">▶ Read my response</button><button class="primary" type="button" id="save">Save now</button><button type="button" id="exit">Save and Exit</button></div><p id="saveStatus" role="status" aria-live="polite"></p><p>This prototype has no Submit button. Saving does not send work to a teacher. Each assessment has its own local draft.</p></section></div>
+<section><h2>Directions</h2><p id="directions">Traveling to an unknown place can be both exciting and scary. One way to describe your journey is to compare and contrast what you see to things you already know. Write a paragraph describing a journey you take to a new, unknown place. Remember the characteristics of a personal narrative as you write.</p><div class="controls"><button type="button" id="readDirections">▶ Read directions (browser)</button><button type="button" id="naturalDirections">▶ Natural voice (online)</button><button type="button" data-audio="pause" data-section="directions">Pause</button><button type="button" data-audio="resume" data-section="directions">Resume</button><button type="button" data-audio="stop" data-section="directions">Stop</button></div><p id="audioStatus" role="status" aria-live="polite" style="min-height:1.5em"></p></section>
+<section id="passageSection" class="hidden"><h2>Reading passage</h2><p id="passage" style="white-space:pre-wrap;line-height:1.7"></p><div class="controls"><button type="button" id="readPassage">▶ Read passage (browser)</button><button type="button" id="naturalPassage">▶ Natural voice: passage (online)</button><button type="button" data-audio="pause" data-section="passage">Pause</button><button type="button" data-audio="resume" data-section="passage">Resume</button><button type="button" data-audio="stop" data-section="passage">Stop</button></div><p id="passageAudioStatus" role="status" aria-live="polite" style="min-height:1.5em"></p></section>
+<section><h2>Response prompt</h2><p id="responsePrompt">Write a paragraph describing a journey to a new, unknown place. Compare what you see to things you already know.</p><div class="controls"><button type="button" id="readPrompt">▶ Read prompt (browser)</button><button type="button" id="naturalPrompt">▶ Natural voice (online)</button><button type="button" data-audio="pause" data-section="prompt">Pause</button><button type="button" data-audio="resume" data-section="prompt">Resume</button><button type="button" data-audio="stop" data-section="prompt">Stop</button></div><p id="promptAudioStatus" role="status" aria-live="polite" style="min-height:1.5em"></p></section>
+<section><h2>My response</h2><label for="response">Write your paragraph</label><textarea id="response" placeholder="Fictional practice response only"></textarea><div class="controls"><button type="button" id="readResponse">▶ Read my response (browser)</button><button type="button" id="naturalResponse">▶ Natural voice (online)</button><button type="button" data-audio="pause" data-section="response">Pause</button><button type="button" data-audio="resume" data-section="response">Resume</button><button type="button" data-audio="stop" data-section="response">Stop</button><button class="primary" type="button" id="save">Save now</button><button type="button" id="exit">Save and Exit</button></div><p id="responseAudioStatus" role="status" aria-live="polite" style="min-height:1.5em"></p><p id="saveStatus" role="status" aria-live="polite"></p><p>This prototype has no Submit button. Saving does not send work to a teacher. Each assessment has its own local draft.</p></section></div>
 </main><script>
 'use strict';
 const $=id=>document.getElementById(id);let activeCode=null,saveTimer=null;
@@ -38,34 +38,60 @@ function saveDraft(){if(!activeCode)return false;try{localStorage.setItem(storag
 $('open').addEventListener('click',()=>{const code=$('code').value.trim().toUpperCase();if(!/^[A-Z0-9]{3,20}$/.test(code)){$('entryStatus').textContent='Enter 3–20 letters or numbers (no spaces).';return}activeCode=code;let draft=null;try{const raw=localStorage.getItem(storageKey(code))||(assessmentId==='default'?localStorage.getItem(legacyKey(code)):null);if(raw)draft=JSON.parse(raw)}catch(e){$('entryStatus').textContent='Saved data could not be read; you may start a new practice response.'}$('response').value=typeof draft?.response==='string'?draft.response:'';$('entry').classList.add('hidden');$('workspace').classList.remove('hidden');$('saveStatus').textContent=draft?'Restored your saved practice response on this device.':'New practice response started. Autosave is on.';$('response').focus()});
 $('response').addEventListener('input',()=>{clearTimeout(saveTimer);$('saveStatus').textContent='Saving…';saveTimer=setTimeout(saveDraft,450)});
 $('save').addEventListener('click',()=>{clearTimeout(saveTimer);saveDraft()});
-$('exit').addEventListener('click',()=>{clearTimeout(saveTimer);if(!saveDraft())return;stopNatural();if('speechSynthesis' in window)speechSynthesis.cancel();activeCode=null;$('response').value='';$('code').value='';$('workspace').classList.add('hidden');$('entry').classList.remove('hidden');$('entryStatus').textContent='Saved and exited. Enter the same practice code on this device to resume.';$('code').focus()});
+$('exit').addEventListener('click',()=>{clearTimeout(saveTimer);if(!saveDraft())return;stopAll();activeCode=null;$('response').value='';$('code').value='';$('workspace').classList.add('hidden');$('entry').classList.remove('hidden');$('entryStatus').textContent='Saved and exited. Enter the same practice code on this device to resume.';$('code').focus()});
 $('large').addEventListener('change',e=>document.body.classList.toggle('large',e.target.checked));$('contrast').addEventListener('change',e=>document.body.classList.toggle('contrast',e.target.checked));
-let naturalAudio=null,naturalUrl=null,voiceRequest=null;
- function stopNatural(){if(voiceRequest){voiceRequest.abort();voiceRequest=null}if(naturalAudio){naturalAudio.pause();naturalAudio.currentTime=0;naturalAudio=null}if(naturalUrl){URL.revokeObjectURL(naturalUrl);naturalUrl=null}}
- function speak(id){stopNatural();if(!('speechSynthesis' in window)){alert('Read-aloud is unavailable in this browser.');return}speechSynthesis.cancel();const el=$(id),u=new SpeechSynthesisUtterance(el.value??el.textContent);u.rate=Number($('rate').value);u.lang='en-US';speechSynthesis.speak(u)}
- async function playNatural(section, elementId, buttonId){
-  stopNatural();if('speechSynthesis' in window)speechSynthesis.cancel();
-  const ctrl=new AbortController();voiceRequest=ctrl;
-  const btn=$(buttonId);$('audioStatus').textContent='Preparing natural voice…';btn.disabled=true;
-  try{
-   const body={section};if(customAssessment)body.text=$(elementId).textContent;
-   const res=await fetch('/api/speech',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctrl.signal});
-   if(!res.ok){let msg='Speech service unavailable';try{msg=(await res.json()).error||msg}catch(e){}throw Error(msg)}
-   const blob=await res.blob();if(ctrl.signal.aborted)return;
-   naturalUrl=URL.createObjectURL(blob);naturalAudio=new Audio(naturalUrl);naturalAudio.playbackRate=Number($('rate').value);
-   naturalAudio.onended=()=>{$('audioStatus').textContent='Finished reading '+section+'.'};
-   await naturalAudio.play();$('audioStatus').textContent='Natural voice is playing '+section+'. Use Pause, Resume, or Stop.';
-  }catch(e){if(e.name!=='AbortError')$('audioStatus').textContent='Natural voice unavailable: '+e.message+'. Use browser read-aloud instead.'}
-  finally{if(voiceRequest===ctrl)voiceRequest=null;btn.disabled=false}
+let naturalAudio=null,naturalUrl=null,voiceRequest=null,activeAudioSection=null,browserUtterance=null;
+const statusIds={directions:'audioStatus',passage:'passageAudioStatus',prompt:'promptAudioStatus',response:'responseAudioStatus'};
+function audioStatus(section,message){$(statusIds[section]).textContent=message}
+function stopNatural(){if(voiceRequest){voiceRequest.abort();voiceRequest=null}if(naturalAudio){naturalAudio.pause();naturalAudio.currentTime=0;naturalAudio=null}if(naturalUrl){URL.revokeObjectURL(naturalUrl);naturalUrl=null}}
+function stopAll(){stopNatural();if('speechSynthesis' in window)speechSynthesis.cancel();browserUtterance=null;activeAudioSection=null}
+function speak(id,section){
+ stopAll();const content=$(id).value??$(id).textContent;
+ if(!content.trim()){audioStatus(section,'There is no text to read yet.');return}
+ if(!('speechSynthesis' in window)){audioStatus(section,'Browser read-aloud is unavailable.');return}
+ activeAudioSection=section;const u=new SpeechSynthesisUtterance(content);browserUtterance=u;u.rate=Number($('rate').value);u.lang='en-US';
+ u.onend=()=>{if(browserUtterance===u)audioStatus(section,'Finished reading.')};
+ u.onerror=()=>{if(browserUtterance===u)audioStatus(section,'Browser read-aloud could not play.')};
+ audioStatus(section,'Browser voice is playing.');speechSynthesis.speak(u);
+}
+async function playNatural(section,id,buttonId){
+ stopAll();const spoken=$(id).value??$(id).textContent;
+ if(!spoken.trim()){audioStatus(section,'There is no text to read yet.');return}
+ if(spoken.length>3000){audioStatus(section,'Natural voice supports up to 3,000 characters per section. Use browser read-aloud for longer text.');return}
+ activeAudioSection=section;const ctrl=new AbortController();voiceRequest=ctrl;
+ const btn=$(buttonId);audioStatus(section,'Preparing natural voice…');btn.disabled=true;
+ try{
+  const body={section};if(customAssessment||section!=='directions')body.text=spoken;
+  const res=await fetch('/api/speech',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctrl.signal});
+  if(!res.ok){let msg='Speech service unavailable ('+res.status+')';try{msg=(await res.json()).error||msg}catch(e){}throw Error(msg)}
+  const blob=await res.blob();if(ctrl.signal.aborted)return;
+  naturalUrl=URL.createObjectURL(blob);naturalAudio=new Audio(naturalUrl);naturalAudio.playbackRate=Number($('rate').value);
+  naturalAudio.onended=()=>{if(activeAudioSection===section)audioStatus(section,'Finished reading.')};
+  await naturalAudio.play();if(activeAudioSection===section)audioStatus(section,'Natural voice is playing.');
+ }catch(e){if(e.name!=='AbortError'&&activeAudioSection===section)audioStatus(section,'Natural voice unavailable: '+e.message+'. Try browser voice.');}
+ finally{if(voiceRequest===ctrl)voiceRequest=null;btn.disabled=false}
+}
+$('naturalDirections').addEventListener('click',()=>playNatural('directions','directions','naturalDirections'));
+$('naturalPassage').addEventListener('click',()=>playNatural('passage','passage','naturalPassage'));
+$('naturalPrompt').addEventListener('click',()=>playNatural('prompt','responsePrompt','naturalPrompt'));
+$('naturalResponse').addEventListener('click',()=>playNatural('response','response','naturalResponse'));
+$('readDirections').addEventListener('click',()=>speak('directions','directions'));
+$('readPassage').addEventListener('click',()=>speak('passage','passage'));
+$('readPrompt').addEventListener('click',()=>speak('responsePrompt','prompt'));
+$('readResponse').addEventListener('click',()=>speak('response','response'));
+document.querySelectorAll('[data-audio]').forEach(btn=>btn.addEventListener('click',()=>{
+ const section=btn.dataset.section,action=btn.dataset.audio;
+ if(action==='stop'){stopAll();audioStatus(section,'Playback stopped.');return}
+ if(activeAudioSection!==section){audioStatus(section,'Start the audio in this section first.');return}
+ if(action==='pause'){
+  if(naturalAudio&&!naturalAudio.paused)naturalAudio.pause();else if('speechSynthesis' in window)speechSynthesis.pause();
+  audioStatus(section,'Playback paused.');
+ }else{
+  if(naturalAudio&&naturalAudio.paused&&!naturalAudio.ended)naturalAudio.play().catch(e=>audioStatus(section,'Unable to resume: '+e.message));
+  else if('speechSynthesis' in window)speechSynthesis.resume();
+  audioStatus(section,'Playback resumed.');
  }
- $('naturalDirections').addEventListener('click',()=>playNatural('directions','directions','naturalDirections'));
- $('naturalPassage').addEventListener('click',()=>playNatural('passage','passage','naturalPassage'));
- $('readPassage').addEventListener('click',()=>speak('passage'));
- $('readDirections').addEventListener('click',()=>speak('directions'));
- $('readResponse').addEventListener('click',()=>speak('response'));
- $('pause').addEventListener('click',()=>{if(naturalAudio&&!naturalAudio.paused)naturalAudio.pause();else if('speechSynthesis' in window)speechSynthesis.pause()});
- $('resume').addEventListener('click',()=>{if(naturalAudio&&naturalAudio.paused&&!naturalAudio.ended)naturalAudio.play();else if('speechSynthesis' in window)speechSynthesis.resume()});
- $('stop').addEventListener('click',()=>{stopNatural();if('speechSynthesis' in window)speechSynthesis.cancel();$('audioStatus').textContent='Playback stopped.'});
- $('rate').addEventListener('change',()=>{if(naturalAudio)naturalAudio.playbackRate=Number($('rate').value)});
+}));
+$('rate').addEventListener('change',()=>{if(naturalAudio)naturalAudio.playbackRate=Number($('rate').value)});
 window.addEventListener('pagehide',()=>{if(activeCode)saveDraft()});
 </script></body></html>

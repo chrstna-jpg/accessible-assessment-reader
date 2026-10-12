@@ -71,7 +71,7 @@ class Handler(SimpleHTTPRequestHandler):
    n=int(self.headers.get('Content-Length','0'))
    if n<1 or n>12000:raise ValueError('Invalid speech request size.')
    data=json.loads(self.rfile.read(n))
-   if not isinstance(data,dict) or data.get('section') not in ('directions','passage'):
+   if not isinstance(data,dict) or data.get('section') not in ('directions','passage','prompt','response'):
     raise ValueError('Invalid speech section.')
    original='Traveling to an unknown place can be both exciting and scary. One way to describe your journey is to compare and contrast what you see to things you already know. Write a paragraph describing a journey you take to a new, unknown place. Remember the characteristics of a personal narrative as you write.'
    if 'text' in data:
