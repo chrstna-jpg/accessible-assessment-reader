@@ -24,3 +24,7 @@ The server only serves the web page, not its Python source. API keys are read fr
 
 ## Refined V2 comparison
 The workflow dropdown now includes **V2 refined**, which uses strengthened evidence gathering and rubric-specific safeguards. Original V1 and initial V2 remain available unchanged for before-and-after comparisons. Test with fictional responses only. Results are provisional and require teacher review; prompt refinements do not guarantee accuracy.
+
+
+## Separate-interface demonstration
+`/` selects a view; `/student.html` contains a student-only writing preview; `/teacher.html` retains the original three teacher rubric review workflows. These are separate presentations only, not authenticated roles. The student page does NOT save or submit work. The `/api/review` endpoint is still publicly reachable and can incur API charges: do not distribute this public demo to students. Use only fictional data. Student codes, persistent drafts, real access control, neural TTS, and uploads are not implemented.
