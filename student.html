@@ -41,9 +41,21 @@ $('save').addEventListener('click',()=>{clearTimeout(saveTimer);saveDraft()});
 $('exit').addEventListener('click',()=>{clearTimeout(saveTimer);if(!saveDraft())return;stopAll();activeCode=null;$('response').value='';$('code').value='';$('workspace').classList.add('hidden');$('entry').classList.remove('hidden');$('entryStatus').textContent='Saved and exited. Enter the same practice code on this device to resume.';$('code').focus()});
 $('large').addEventListener('change',e=>document.body.classList.toggle('large',e.target.checked));$('contrast').addEventListener('change',e=>document.body.classList.toggle('contrast',e.target.checked));
 let naturalAudio=null,naturalUrl=null,voiceRequest=null,activeAudioSection=null,browserUtterance=null;
+// Cache completed audio in this tab. Nothing is stored on the server or across reloads.
+const voiceCache=new Map();
+const MAX_CACHED_RECORDINGS=8;
+function rememberAudio(key,blob){
+ const url=URL.createObjectURL(blob);
+ voiceCache.set(key,url);
+ if(voiceCache.size>MAX_CACHED_RECORDINGS){
+  const oldest=voiceCache.keys().next().value;
+  URL.revokeObjectURL(voiceCache.get(oldest));voiceCache.delete(oldest);
+ }
+ return url;
+}
 const statusIds={directions:'audioStatus',passage:'passageAudioStatus',prompt:'promptAudioStatus',response:'responseAudioStatus'};
 function audioStatus(section,message){$(statusIds[section]).textContent=message}
-function stopNatural(){if(voiceRequest){voiceRequest.abort();voiceRequest=null}if(naturalAudio){naturalAudio.pause();naturalAudio.currentTime=0;naturalAudio=null}if(naturalUrl){URL.revokeObjectURL(naturalUrl);naturalUrl=null}}
+function stopNatural(){if(voiceRequest){voiceRequest.abort();voiceRequest=null}if(naturalAudio){naturalAudio.pause();naturalAudio.currentTime=0;naturalAudio=null}naturalUrl=null}
 function stopAll(){stopNatural();if('speechSynthesis' in window)speechSynthesis.cancel();browserUtterance=null;activeAudioSection=null}
 function speak(id,section){
  stopAll();const content=$(id).value??$(id).textContent;
@@ -58,18 +70,42 @@ async function playNatural(section,id,buttonId){
  stopAll();const spoken=$(id).value??$(id).textContent;
  if(!spoken.trim()){audioStatus(section,'There is no text to read yet.');return}
  if(spoken.length>3000){audioStatus(section,'Natural voice supports up to 3,000 characters per section. Use browser read-aloud for longer text.');return}
- activeAudioSection=section;const ctrl=new AbortController();voiceRequest=ctrl;
- const btn=$(buttonId);audioStatus(section,'Preparing natural voice…');btn.disabled=true;
+ activeAudioSection=section;
+ const key=section+'\u0000'+spoken;
+ const btn=$(buttonId);
+ btn.disabled=true;
+ let timeoutId=null;
  try{
-  const body={section};if(customAssessment||section!=='directions')body.text=spoken;
-  const res=await fetch('/api/speech',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctrl.signal});
-  if(!res.ok){let msg='Speech service unavailable ('+res.status+')';try{msg=(await res.json()).error||msg}catch(e){}throw Error(msg)}
-  const blob=await res.blob();if(ctrl.signal.aborted)return;
-  naturalUrl=URL.createObjectURL(blob);naturalAudio=new Audio(naturalUrl);naturalAudio.playbackRate=Number($('rate').value);
+  let url=voiceCache.get(key);
+  if(url){
+   audioStatus(section,'Playing saved recording…');
+  }else{
+   const ctrl=new AbortController();voiceRequest=ctrl;
+   audioStatus(section,'Preparing natural voice… This can take up to 25 seconds. Browser voice is available if you prefer not to wait.');
+   timeoutId=setTimeout(()=>ctrl.abort(),25000);
+   const body={section};if(customAssessment||section!=='directions')body.text=spoken;
+   const res=await fetch('/api/speech',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctrl.signal});
+   if(!res.ok){let msg='Speech service unavailable ('+res.status+')';try{msg=(await res.json()).error||msg}catch(e){}throw Error(msg)}
+   const blob=await res.blob();
+   if(ctrl.signal.aborted||activeAudioSection!==section)return;
+   if(!blob.size)throw Error('The speech service returned empty audio');
+   url=rememberAudio(key,blob);
+  }
+  if(activeAudioSection!==section)return;
+  naturalUrl=url;naturalAudio=new Audio(url);naturalAudio.playbackRate=Number($('rate').value);
   naturalAudio.onended=()=>{if(activeAudioSection===section)audioStatus(section,'Finished reading.')};
-  await naturalAudio.play();if(activeAudioSection===section)audioStatus(section,'Natural voice is playing.');
- }catch(e){if(e.name!=='AbortError'&&activeAudioSection===section)audioStatus(section,'Natural voice unavailable: '+e.message+'. Try browser voice.');}
- finally{if(voiceRequest===ctrl)voiceRequest=null;btn.disabled=false}
+  await naturalAudio.play();
+  if(activeAudioSection===section)audioStatus(section,voiceCache.get(key)===url?'Natural voice is playing. Replay will use the saved recording.':'Natural voice is playing.');
+ }catch(e){
+  if(activeAudioSection===section){
+   const msg=e.name==='AbortError'?'Natural voice took too long or was stopped. Try Browser Voice.':'Natural voice unavailable: '+e.message+'. Try Browser Voice.';
+   audioStatus(section,msg);
+  }
+ }finally{
+  if(timeoutId!==null)clearTimeout(timeoutId);
+  voiceRequest=null;
+  btn.disabled=false;
+ }
 }
 $('naturalDirections').addEventListener('click',()=>playNatural('directions','directions','naturalDirections'));
 $('naturalPassage').addEventListener('click',()=>playNatural('passage','passage','naturalPassage'));
