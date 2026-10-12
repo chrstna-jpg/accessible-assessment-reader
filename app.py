@@ -33,10 +33,11 @@ def validate(result):
 class Handler(SimpleHTTPRequestHandler):
  def __init__(self,*a,**kw):super().__init__(*a,directory=str(ROOT),**kw)
  def do_GET(self):
-  if self.path.split("?",1)[0] not in ("/", "/index.html"):
+  path=self.path.split("?",1)[0]
+  if path not in ("/", "/index.html", "/teacher.html", "/student.html"):
    self.send_error(404)
    return
-  self.path="/index.html"
+  self.path="/index.html" if path=="/" else path
   return super().do_GET()
  def do_POST(self):
   if self.path!='/api/review':self.send_error(404);return
