@@ -69,18 +69,25 @@ class Handler(SimpleHTTPRequestHandler):
   # Prototype-only endpoint. Public deployments need authentication and stronger rate limits.
   try:
    n=int(self.headers.get('Content-Length','0'))
-   if n<1 or n>5000:raise ValueError('Invalid speech request size.')
+   if n<1 or n>12000:raise ValueError('Invalid speech request size.')
    data=json.loads(self.rfile.read(n))
-   if not isinstance(data,dict) or data.get('section')!='directions':
-    raise ValueError('Only assessment directions can use natural voice in this prototype.')
-   # The text is fixed server-side to prevent public visitors using this as an arbitrary TTS proxy.
-   spoken='Traveling to an unknown place can be both exciting and scary. One way to describe your journey is to compare and contrast what you see to things you already know. Write a paragraph describing a journey you take to a new, unknown place. Remember the characteristics of a personal narrative as you write.'
+   if not isinstance(data,dict) or data.get('section') not in ('directions','passage'):
+    raise ValueError('Invalid speech section.')
+   original='Traveling to an unknown place can be both exciting and scary. One way to describe your journey is to compare and contrast what you see to things you already know. Write a paragraph describing a journey you take to a new, unknown place. Remember the characteristics of a personal narrative as you write.'
+   if 'text' in data:
+    spoken=data['text']
+    if not isinstance(spoken,str) or not spoken.strip() or len(spoken)>3000:
+     raise ValueError('Natural voice text must be 1–3000 characters.')
+   elif data['section']=='directions':
+    spoken=original
+   else:
+    raise ValueError('No passage supplied.')
    key=os.getenv('OPENAI_API_KEY')
    if not key:raise ValueError('Speech service is not configured.')
-   payload=json.dumps({'model':'gpt-4o-mini-tts','voice':'coral','input':spoken,'response_format':'mp3','instructions':'Read these assessment directions clearly, warmly, and at a calm, accessible pace. Do not add or change any words.'}).encode()
+   payload=json.dumps({'model':'gpt-4o-mini-tts','voice':'coral','input':spoken,'response_format':'mp3','instructions':'Read this assessment text clearly, warmly, and at a calm, accessible pace. Do not add or change any words.'}).encode()
    req=urllib.request.Request('https://api.openai.com/v1/audio/speech',data=payload,headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'})
-   with urllib.request.urlopen(req,timeout=60) as resp:audio=resp.read(2000000)
-   if not audio or len(audio)>1500000:raise ValueError('Invalid speech response.')
+   with urllib.request.urlopen(req,timeout=60) as resp:audio=resp.read(3000001)
+   if not audio or len(audio)>3000000:raise ValueError('Invalid speech response.')
    self.send_response(200)
    self.send_header('Content-Type','audio/mpeg')
    self.send_header('Cache-Control','no-store')

@@ -1,11 +1,13 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Student Assessment — Save and Resume Prototype</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Student Assessment — Reading and Writing Practice</title>
 <style>:root{font-family:system-ui,Arial,sans-serif;color:#172c46;background:#f2f5fa}body{margin:0}header{background:#193b65;color:white;padding:1.2rem max(1rem,calc((100% - 800px)/2))}header a{color:white}main{max-width:800px;margin:auto;padding:1rem}section{background:white;padding:1.4rem;margin:1rem 0;border-radius:12px;box-shadow:0 1px 5px #dce3ed}button,input,select,textarea{font:inherit}button,input,select{padding:.65rem;border:1px solid #8194ad;border-radius:6px}button{background:white;cursor:pointer}button.primary{background:#193b65;color:white}button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #d58d00;outline-offset:2px}textarea{width:100%;box-sizing:border-box;min-height:230px;padding:.8rem;border:1px solid #8194ad;border-radius:6px}label{display:block;margin:.8rem 0}.controls{display:flex;flex-wrap:wrap;gap:.5rem}.note{background:#fff4d4;padding:.8rem;border-radius:6px;line-height:1.5}.hidden{display:none}body.large{font-size:1.25rem}body.contrast{background:#fff;color:#000}body.contrast section{border:2px solid black;box-shadow:none}#saveStatus{min-height:1.5em}</style></head>
 <body><header><a href="/">← Choose a view</a><h1>My Assessment</h1><p>Student practice — save and resume prototype</p></header><main>
 <p class="note"><strong>Fictional practice only.</strong> Your work is saved in <strong>this browser on this device</strong>, not to a teacher or server. It may disappear if browser data is cleared, private browsing is used, or you switch devices. Student codes are practice labels, not secure accounts. Do not enter real student information.</p>
 <section id="entry"><h2 id="assessmentTitle">Start or resume</h2><p id="assessmentPrompt" class="hidden"></p><label for="code">Practice code (letters and numbers only)</label><input id="code" autocomplete="off" maxlength="20" placeholder="Example: DEMO101" aria-describedby="codeHelp"><p id="codeHelp">Use a fictional code. Enter the same code on this device to resume your saved response.</p><button class="primary" id="open" type="button">Open my practice assessment</button><p id="entryStatus" role="status"></p></section>
 <div id="workspace" class="hidden"><section><h2>Reading and display settings</h2><label><input type="checkbox" id="large"> Larger text</label><label><input type="checkbox" id="contrast"> High contrast</label><label for="rate">Reading speed</label><select id="rate"><option value="0.75">Slow</option><option value="1" selected>Normal</option><option value="1.2">Fast</option></select></section>
 <section><h2>Directions</h2><p id="directions">Traveling to an unknown place can be both exciting and scary. One way to describe your journey is to compare and contrast what you see to things you already know. Write a paragraph describing a journey you take to a new, unknown place. Remember the characteristics of a personal narrative as you write.</p><div class="controls"><button type="button" id="readDirections">▶ Read directions (browser)</button><button type="button" id="naturalDirections">▶ Natural voice (online)</button><button type="button" id="pause">Pause</button><button type="button" id="resume">Resume</button><button type="button" id="stop">Stop</button></div><p id="audioStatus" role="status" aria-live="polite" style="min-height:1.5em"></p></section>
+<section id="passageSection" class="hidden"><h2>Reading passage</h2><p id="passage" style="white-space:pre-wrap;line-height:1.7"></p><div class="controls"><button type="button" id="readPassage">▶ Read passage (browser)</button><button type="button" id="naturalPassage">▶ Natural voice: passage (online)</button></div><p class="note">Use Pause, Resume, and Stop in the Directions section to control any audio.</p></section>
+<section><h2>Response prompt</h2><p id="responsePrompt">Write a paragraph describing a journey to a new, unknown place. Compare what you see to things you already know.</p></section>
 <section><h2>My response</h2><label for="response">Write your paragraph</label><textarea id="response" placeholder="Fictional practice response only"></textarea><div class="controls"><button type="button" id="readResponse">▶ Read my response</button><button class="primary" type="button" id="save">Save now</button><button type="button" id="exit">Save and Exit</button></div><p id="saveStatus" role="status" aria-live="polite"></p><p>This prototype has no Submit button. Saving does not send work to a teacher. Each assessment has its own local draft.</p></section></div>
 </main><script>
 'use strict';
@@ -21,14 +23,14 @@ function decodeAssessment(){
   if(encoded.length>10000)throw Error('Link is too long');
   const bytes=Uint8Array.from(atob(encoded.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
   const a=JSON.parse(new TextDecoder().decode(bytes));
-  if(a.v!==1||typeof a.id!=='string'||!/^[a-zA-Z0-9-]{8,80}$/.test(a.id)||typeof a.title!=='string'||typeof a.directions!=='string'||typeof a.prompt!=='string'||!a.title.trim()||!a.directions.trim()||!a.prompt.trim()||a.title.length>120||a.directions.length>2500||a.prompt.length>1000)throw Error('Invalid assessment');
+  if(![1,2].includes(a.v)||typeof a.id!=='string'||!/^[a-zA-Z0-9-]{8,80}$/.test(a.id)||typeof a.title!=='string'||typeof a.directions!=='string'||typeof a.prompt!=='string'||!a.title.trim()||!a.directions.trim()||!a.prompt.trim()||a.title.length>120||a.directions.length>2500||a.prompt.length>1000||(a.v===2&&(typeof a.passage!=='string'||a.passage.length>3000)))throw Error('Invalid assessment');
   assessmentId=a.id;customAssessment=true;
   $('assessmentTitle').textContent=a.title;
   $('assessmentPrompt').textContent='Writing prompt: '+a.prompt;
   $('assessmentPrompt').classList.remove('hidden');
-  $('directions').textContent=a.directions+'\n\nWriting prompt: '+a.prompt;
-  $('naturalDirections').disabled=true;
-  $('audioStatus').textContent='For custom assessments, use Read directions (browser). Natural voice is currently available only for the original practice assessment.';
+  $('directions').textContent=a.directions;
+  $('responsePrompt').textContent=a.prompt;
+  if(a.v===2&&a.passage.trim()){$('passage').textContent=a.passage;$('passageSection').classList.remove('hidden');}
  }catch(e){$('entryStatus').textContent='This assessment link is invalid. Ask your teacher for a new practice link.';$('open').disabled=true;}
 }
 decodeAssessment();
@@ -41,7 +43,24 @@ $('large').addEventListener('change',e=>document.body.classList.toggle('large',e
 let naturalAudio=null,naturalUrl=null,voiceRequest=null;
  function stopNatural(){if(voiceRequest){voiceRequest.abort();voiceRequest=null}if(naturalAudio){naturalAudio.pause();naturalAudio.currentTime=0;naturalAudio=null}if(naturalUrl){URL.revokeObjectURL(naturalUrl);naturalUrl=null}}
  function speak(id){stopNatural();if(!('speechSynthesis' in window)){alert('Read-aloud is unavailable in this browser.');return}speechSynthesis.cancel();const el=$(id),u=new SpeechSynthesisUtterance(el.value??el.textContent);u.rate=Number($('rate').value);u.lang='en-US';speechSynthesis.speak(u)}
- $('naturalDirections').addEventListener('click',async()=>{if(customAssessment){$('audioStatus').textContent='Natural voice is only available for the original practice directions. Use browser voice for this assessment.';return}stopNatural();speechSynthesis.cancel();const ctrl=new AbortController();voiceRequest=ctrl;$('audioStatus').textContent='Preparing natural voice…';$('naturalDirections').disabled=true;try{const res=await fetch('/api/speech',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({section:'directions'}),signal:ctrl.signal});if(!res.ok){let msg='Speech service unavailable';try{msg=(await res.json()).error||msg}catch(e){}throw Error(msg)}const blob=await res.blob();if(ctrl.signal.aborted)return;naturalUrl=URL.createObjectURL(blob);naturalAudio=new Audio(naturalUrl);naturalAudio.playbackRate=Number($('rate').value);naturalAudio.onended=()=>{$('audioStatus').textContent='Finished reading directions.'};await naturalAudio.play();$('audioStatus').textContent='Natural voice is playing. Use Pause, Resume, or Stop.'}catch(e){if(e.name!=='AbortError'){$('audioStatus').textContent='Natural voice unavailable: '+e.message+'. Use browser Read directions instead.'}}finally{if(voiceRequest===ctrl)voiceRequest=null;$('naturalDirections').disabled=false}});
+ async function playNatural(section, elementId, buttonId){
+  stopNatural();if('speechSynthesis' in window)speechSynthesis.cancel();
+  const ctrl=new AbortController();voiceRequest=ctrl;
+  const btn=$(buttonId);$('audioStatus').textContent='Preparing natural voice…';btn.disabled=true;
+  try{
+   const body={section};if(customAssessment)body.text=$(elementId).textContent;
+   const res=await fetch('/api/speech',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctrl.signal});
+   if(!res.ok){let msg='Speech service unavailable';try{msg=(await res.json()).error||msg}catch(e){}throw Error(msg)}
+   const blob=await res.blob();if(ctrl.signal.aborted)return;
+   naturalUrl=URL.createObjectURL(blob);naturalAudio=new Audio(naturalUrl);naturalAudio.playbackRate=Number($('rate').value);
+   naturalAudio.onended=()=>{$('audioStatus').textContent='Finished reading '+section+'.'};
+   await naturalAudio.play();$('audioStatus').textContent='Natural voice is playing '+section+'. Use Pause, Resume, or Stop.';
+  }catch(e){if(e.name!=='AbortError')$('audioStatus').textContent='Natural voice unavailable: '+e.message+'. Use browser read-aloud instead.'}
+  finally{if(voiceRequest===ctrl)voiceRequest=null;btn.disabled=false}
+ }
+ $('naturalDirections').addEventListener('click',()=>playNatural('directions','directions','naturalDirections'));
+ $('naturalPassage').addEventListener('click',()=>playNatural('passage','passage','naturalPassage'));
+ $('readPassage').addEventListener('click',()=>speak('passage'));
  $('readDirections').addEventListener('click',()=>speak('directions'));
  $('readResponse').addEventListener('click',()=>speak('response'));
  $('pause').addEventListener('click',()=>{if(naturalAudio&&!naturalAudio.paused)naturalAudio.pause();else if('speechSynthesis' in window)speechSynthesis.pause()});
