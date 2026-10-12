@@ -40,6 +40,8 @@ class Handler(SimpleHTTPRequestHandler):
   self.path="/index.html" if path=="/" else path
   return super().do_GET()
  def do_POST(self):
+  if self.path=='/api/speech':
+   return self.handle_speech()
   if self.path!='/api/review':self.send_error(404);return
   try:
    n=int(self.headers.get('Content-Length','0'))
@@ -62,6 +64,30 @@ class Handler(SimpleHTTPRequestHandler):
    self.send_json(200,result)
   except urllib.error.HTTPError as e:
    self.send_json(502,{'error':'API error '+str(e.code)+': '+e.read().decode()[:350]})
+  except Exception as e:self.send_json(400,{'error':str(e)})
+ def handle_speech(self):
+  # Prototype-only endpoint. Public deployments need authentication and stronger rate limits.
+  try:
+   n=int(self.headers.get('Content-Length','0'))
+   if n<1 or n>5000:raise ValueError('Invalid speech request size.')
+   data=json.loads(self.rfile.read(n))
+   if not isinstance(data,dict) or data.get('section')!='directions':
+    raise ValueError('Only assessment directions can use natural voice in this prototype.')
+   # The text is fixed server-side to prevent public visitors using this as an arbitrary TTS proxy.
+   spoken='Traveling to an unknown place can be both exciting and scary. One way to describe your journey is to compare and contrast what you see to things you already know. Write a paragraph describing a journey you take to a new, unknown place. Remember the characteristics of a personal narrative as you write.'
+   key=os.getenv('OPENAI_API_KEY')
+   if not key:raise ValueError('Speech service is not configured.')
+   payload=json.dumps({'model':'gpt-4o-mini-tts','voice':'coral','input':spoken,'response_format':'mp3','instructions':'Read these assessment directions clearly, warmly, and at a calm, accessible pace. Do not add or change any words.'}).encode()
+   req=urllib.request.Request('https://api.openai.com/v1/audio/speech',data=payload,headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'})
+   with urllib.request.urlopen(req,timeout=60) as resp:audio=resp.read(2000000)
+   if not audio or len(audio)>1500000:raise ValueError('Invalid speech response.')
+   self.send_response(200)
+   self.send_header('Content-Type','audio/mpeg')
+   self.send_header('Cache-Control','no-store')
+   self.send_header('Content-Length',str(len(audio)))
+   self.end_headers()
+   self.wfile.write(audio)
+  except urllib.error.HTTPError as e:self.send_json(502,{'error':'Speech service returned an error ('+str(e.code)+').'})
   except Exception as e:self.send_json(400,{'error':str(e)})
  def send_json(self,status,data):
   raw=json.dumps(data).encode();self.send_response(status);self.send_header('Content-Type','application/json');self.send_header('Content-Length',str(len(raw)));self.end_headers();self.wfile.write(raw)
