@@ -50,6 +50,9 @@ class Handler(SimpleHTTPRequestHandler):
    response=data.get('response','')
    if not isinstance(response,str) or not response.strip():raise ValueError('Please enter a student response before requesting a review.')
    if len(response)>12000:raise ValueError('Student response is too long for this prototype.')
+   # T5 safeguard: clearly insufficient responses need more writing, not provisional numeric scores.
+   word_count=len(re.findall(r"\b[\w]+(?:['’][\w]+)?\b",response))
+   if word_count<15:raise ValueError('Not enough writing to evaluate reliably. Please add more details to your response before requesting rubric scores.')
    if data.get('mode') not in ('v1','v2','v2_refined'):raise ValueError('Invalid workflow selection.')
    context={'grade':5,'task':'Write a paragraph describing a journey to a new, unknown place. Compare what you see to things you already know. Use characteristics of a personal narrative.','rubric':RUBRIC,'student_response':response}
    if data['mode']=='v2_refined':
