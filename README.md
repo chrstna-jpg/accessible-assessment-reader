@@ -18,7 +18,7 @@ Educational prototype using fictional student writing only. Not approved for act
 
 ## Important limitations
 
-The web page is publicly reachable if deployed, and this version has **no teacher authentication, student codes, save/resume, or server-side access controls**. The teacher rubric and review button are visible to anyone with the URL. Do not use with real students, share with a class, or send real student work to the API. The current web interface uses browser text-to-speech. V2 was compared with V1 using selected fictional test cases; results were mixed and remain provisional.
+The web page is publicly reachable if deployed. The Student View includes a demonstration practice code and browser-based local saving of student responses, but these features do not provide secure authentication or server-side access controls. The Teacher View does not require authentication. The teacher rubric and review button are visible to anyone with the URL. Do not use with real students, share with a class, or send real student work to the API. The current web interface uses browser text-to-speech. V2 was compared with V1 using selected fictional test cases; results were mixed and remain provisional.
 
 The server only serves the web page, not its Python source. API keys are read from server-side environment variables.
 
@@ -27,4 +27,4 @@ The workflow dropdown now includes **V2 refined**, which uses strengthened evide
 
 
 ## Separate-interface demonstration
-`/` selects a view; `/student.html` contains a student-only writing preview; `/teacher.html` retains the original three teacher rubric review workflows. These are separate presentations only, not authenticated roles. The student page does NOT save or submit work. The `/api/review` endpoint is still publicly reachable and can incur API charges: do not distribute this public demo to students. Use only fictional data. Student codes, persistent drafts, real access control, neural TTS, and uploads are not implemented.
+`/` selects a view; `/student.html` contains a student-only writing preview; `/teacher.html` retains the original three teacher rubric review workflows. These are separate presentations only, not authenticated roles. The Student View saves responses locally in the browser but does not automatically submit them to the teacher or AI service. The `/api/review` endpoint is still publicly reachable and can incur API charges: do not distribute this public demo to students. Use only fictional data. The Student View includes a demonstration practice code and browser-based response saving, but secure authentication, server-side draft storage, neural TTS, and assessment uploads are not implemented.
