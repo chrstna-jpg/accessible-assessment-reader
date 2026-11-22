@@ -36,7 +36,13 @@ function decodeAssessment(){
 decodeAssessment();
 function saveDraft(){if(!activeCode)return false;try{localStorage.setItem(storageKey(activeCode),JSON.stringify({response:$('response').value,updatedAt:new Date().toISOString()}));$('saveStatus').textContent='Saved on this device at '+new Date().toLocaleTimeString();return true}catch(e){$('saveStatus').textContent='Unable to save in this browser. Copy your writing somewhere safe before leaving.';return false}}
 $('open').addEventListener('click',()=>{const code=$('code').value.trim().toUpperCase();if(!/^[A-Z0-9]{3,20}$/.test(code)){$('entryStatus').textContent='Enter 3–20 letters or numbers (no spaces).';return}activeCode=code;let draft=null;try{const raw=localStorage.getItem(storageKey(code))||(assessmentId==='default'?localStorage.getItem(legacyKey(code)):null);if(raw)draft=JSON.parse(raw)}catch(e){$('entryStatus').textContent='Saved data could not be read; you may start a new practice response.'}$('response').value=typeof draft?.response==='string'?draft.response:'';$('entry').classList.add('hidden');$('workspace').classList.remove('hidden');$('saveStatus').textContent=draft?'Restored your saved practice response on this device.':'New practice response started. Autosave is on.';$('response').focus()});
-$('response').addEventListener('input',()=>{clearTimeout(saveTimer);$('saveStatus').textContent='Saving…';saveTimer=setTimeout(saveDraft,450)});
+
+if (code !== 'DEMO101') {
+  $('entryStatus').textContent =
+    'This practice code is not recognized. Please check your code and try again.';
+  return;
+}
+ $('response').addEventListener('input',()=>{clearTimeout(saveTimer);$('saveStatus').textContent='Saving…';saveTimer=setTimeout(saveDraft,450)});
 $('save').addEventListener('click',()=>{clearTimeout(saveTimer);saveDraft()});
 $('exit').addEventListener('click',()=>{clearTimeout(saveTimer);if(!saveDraft())return;stopAll();activeCode=null;$('response').value='';$('code').value='';$('workspace').classList.add('hidden');$('entry').classList.remove('hidden');$('entryStatus').textContent='Saved and exited. Enter the same practice code on this device to resume.';$('code').focus()});
 $('large').addEventListener('change',e=>document.body.classList.toggle('large',e.target.checked));$('contrast').addEventListener('change',e=>document.body.classList.toggle('contrast',e.target.checked));
