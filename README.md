@@ -18,7 +18,7 @@ Educational prototype using fictional student writing only. Not approved for act
 
 ## Important limitations
 
-The web page is publicly reachable if deployed, and this version has **no teacher authentication, student codes, save/resume, or server-side access controls**. The teacher rubric and review button are visible to anyone with the URL. Do not use with real students, share with a class, or send real student work to the API. The current web interface uses browser text-to-speech. V2 includes a two-step LLM process but must still be tested against the V1 samples.
+The web page is publicly reachable if deployed, and this version has **no teacher authentication, student codes, save/resume, or server-side access controls**. The teacher rubric and review button are visible to anyone with the URL. Do not use with real students, share with a class, or send real student work to the API. The current web interface uses browser text-to-speech. V2 was compared with V1 using selected fictional test cases; results were mixed and remain provisional.
 
 The server only serves the web page, not its Python source. API keys are read from server-side environment variables.
 
